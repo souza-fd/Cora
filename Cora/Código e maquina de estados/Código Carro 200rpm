@@ -1,0 +1,1278 @@
+// Bibliotecas para Bluetooth
+#include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+
+#define SERVICE_UUID        "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+#define CHARACTERISTIC_UUID "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+
+BLECharacteristic *pCharacteristic;
+bool deviceConnected = false;
+class MyServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) {
+    deviceConnected = true;
+  }
+  void onDisconnect(BLEServer* pServer) {
+    deviceConnected = false;
+  }
+};
+
+
+// Definição dos Pinos
+#define SENSOR1_PIN 37
+#define SENSOR2_PIN 35
+#define SENSOR3_PIN 45
+#define SENSOR4_PIN 47
+#define SENSOR5_PIN 13
+#define SENSOR6_PIN 11
+#define SENSOR7_PIN 9
+#define SENSOR8_PIN 17
+#define SENSOR9_PIN 15
+
+#define IN1 42  // Motor Esquerdo
+#define IN2 41
+#define IN3 38  // Motor Direito
+#define IN4 39
+
+
+// =============================================================
+// Definindo INPUTs e OUTPUTs 
+// =============================================================
+void setup() {
+  Serial.begin(115200);
+  pinMode(SENSOR1_PIN, INPUT);
+  pinMode(SENSOR2_PIN, INPUT);
+  pinMode(SENSOR3_PIN, INPUT);
+  pinMode(SENSOR4_PIN, INPUT);
+  pinMode(SENSOR5_PIN, INPUT);
+  pinMode(SENSOR6_PIN, INPUT);
+  pinMode(SENSOR7_PIN, INPUT);
+  pinMode(SENSOR8_PIN, INPUT);
+  pinMode(SENSOR9_PIN, INPUT);
+
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+
+  // Inicializa BLE
+  BLEDevice::init("ESP32-S3_SENSORS");
+  BLEServer *pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+  pCharacteristic = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID,
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pCharacteristic->addDescriptor(new BLE2902());
+  pService->start();
+  pServer->getAdvertising()->start();
+  Serial.println("BLE iniciado. Aguardando conexão...");
+  }
+
+
+// =============================================================
+// Variáveis globais
+// =============================================================
+
+int estado = 0;
+int erro = 0;
+int erroAnterior = 0;
+int integral = 0;
+int amostragem_BLE = 20;
+
+unsigned long tempoAtual;
+unsigned long tempoAnteriorBLE = 0;
+unsigned long tempoAnterior_PistaInvertida = 0;
+unsigned long tempoAnterior_parado5s = 0;
+
+float Kp = 40.0; // 40.0 para 200rpm || 70.0 para 500rpm
+float Kd = 5.0; // 5.0 para 200rpm || 12.0 para 500rpm
+float Ki = 0.002; // 0.002 para 200rpm || 0.005 para 500rpm
+int velBase_Global = 255; 
+
+
+// =============================================================
+// Funções utilizadas 
+// =============================================================
+
+// Controle manual dos motores
+void controle_velocidade(int P1, int P2, int P3, int P4){
+  P1 = int(P1);
+  P2 = int(P2);
+  P3 = int(P3);
+  P4 = int(P4);
+  analogWrite(IN1, P1);
+  analogWrite(IN2, P2);
+  analogWrite(IN3, P3);
+  analogWrite(IN4, P4);
+}
+
+// Realinhamento para a direita
+void realinharDir(unsigned long timeAtual, unsigned long timeAnteriorBLE) {
+  while(1){
+    timeAtual = millis();
+    // Leitura dos sensores
+    int sensor1 = !digitalRead(SENSOR1_PIN);
+    int sensor2 = !digitalRead(SENSOR2_PIN);
+    int sensor3 = !digitalRead(SENSOR3_PIN);
+    int sensor4 = !digitalRead(SENSOR4_PIN);
+    int sensor5 = !digitalRead(SENSOR5_PIN);
+    int sensor6 = !digitalRead(SENSOR6_PIN);
+    int sensor7 = !digitalRead(SENSOR7_PIN);
+    int sensor8 = !digitalRead(SENSOR8_PIN);
+    int sensor9 = !digitalRead(SENSOR9_PIN);
+
+    controle_velocidade(255, 0, 0, 80);
+
+  // Enviar leitura por bluetooth
+    if (deviceConnected) {
+      // Monta string manualmente
+      String sensorData = "";
+      sensorData += String(sensor1) + "";
+      sensorData += String(sensor2) + "-";
+      sensorData += String(sensor3) + "";
+      sensorData += String(sensor4) + "";
+      sensorData += String(sensor5) + "";
+      sensorData += String(sensor6) + "";
+      sensorData += String(sensor7) + "-";
+      sensorData += String(sensor8) + "";
+      sensorData += String(sensor9) + "  ";
+      sensorData += "E" + String(estado);
+
+      if(timeAtual - timeAnteriorBLE >= int(1000/amostragem_BLE)){ 
+        Serial.println(sensorData);  // Também mostra no Serial Monitor
+        pCharacteristic->setValue(sensorData.c_str());
+        pCharacteristic->notify();
+        timeAnteriorBLE = timeAtual;
+      }
+    }
+
+    // Transição para voltar à linha 
+    if((sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      break;
+  }
+}
+
+// Realinhamento para a esquerda
+void realinharEsq(unsigned long timeAtual, unsigned long timeAnteriorBLE) {
+  while(1){
+    timeAtual = millis();
+    // Leitura dos sensores
+    int sensor1 = !digitalRead(SENSOR1_PIN);
+    int sensor2 = !digitalRead(SENSOR2_PIN);
+    int sensor3 = !digitalRead(SENSOR3_PIN);
+    int sensor4 = !digitalRead(SENSOR4_PIN);
+    int sensor5 = !digitalRead(SENSOR5_PIN);
+    int sensor6 = !digitalRead(SENSOR6_PIN);
+    int sensor7 = !digitalRead(SENSOR7_PIN);
+    int sensor8 = !digitalRead(SENSOR8_PIN);
+    int sensor9 = !digitalRead(SENSOR9_PIN);
+
+    controle_velocidade(0, 80, 255, 0);
+
+  // Enviar leitura por bluetooth
+    if (deviceConnected) {
+      // Monta string manualmente
+      String sensorData = "";
+      sensorData += String(sensor1) + "";
+      sensorData += String(sensor2) + "-";
+      sensorData += String(sensor3) + "";
+      sensorData += String(sensor4) + "";
+      sensorData += String(sensor5) + "";
+      sensorData += String(sensor6) + "";
+      sensorData += String(sensor7) + "-";
+      sensorData += String(sensor8) + "";
+      sensorData += String(sensor9) + "  ";
+      sensorData += "E" + String(estado);
+
+      if(timeAtual - timeAnteriorBLE >= int(1000/amostragem_BLE)){ 
+        Serial.println(sensorData);  // Também mostra no Serial Monitor
+        pCharacteristic->setValue(sensorData.c_str());
+        pCharacteristic->notify();
+        timeAnteriorBLE = timeAtual;
+      }
+    }
+
+    // Transição para voltar à linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1))
+      break;
+  }
+}
+
+// Atribuição de pesos para cada sensor
+int atribuirErro(int sensor1, int sensor2, int sensor3, int sensor4, int sensor5, int sensor6, int sensor7, int sensor8, int sensor9){
+  int erro = 0;
+  if(sensor8 == 1 && sensor2 == 1)
+    erro = 0;
+  else if(sensor7 == 1 && sensor3 == 1)
+    erro = 0;
+  else if(sensor6 == 1 && sensor4 == 1)
+    erro = 0;
+  else if(sensor5 == 1 && sensor6 == 0 && sensor4 == 0)
+    erro = 0;
+  else if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 1)
+    erro = +3;
+  else if(sensor2 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+    erro = -3;
+  else if(sensor7 == 1)
+    erro = +3;
+  else if(sensor3 == 1)
+    erro = -3;
+  else if(sensor6 == 1)
+    erro = +1;
+  else if(sensor4 == 1)
+    erro = -1;
+
+  return erro;
+}
+
+// Controle PID dos motores a partir do erro
+void controle_PID(int erro, int erroAnterior, int integral, int velBase){
+
+  int ajuste = int(Kp * (erro) + Kd * (erro - erroAnterior) + Ki * (integral));
+  int velEsq = int(velBase + ajuste);
+  int velDir = int(velBase - ajuste);
+
+  velEsq = constrain(velEsq, 0, 255);
+  velDir  = constrain(velDir, 0, 255);
+  controle_velocidade(velEsq, 0, velDir, 0);
+
+
+/*
+// Mostrando a potência dos motores
+  Serial.print("velEsquerdo: "); Serial.print(velEsq);
+  Serial.print("  velDireito: "); Serial.println(velDir);
+
+  Serial.print("erro: "); Serial.print(erro);
+  Serial.print("  erroAnterior: "); Serial.print(erroAnterior);
+  Serial.print("  integral: "); Serial.print(integral);
+  Serial.println("");
+  delay(700); 
+*/
+  
+}
+
+// Virar pra direita 
+void virar90Dir(){
+  //continua
+  controle_velocidade(150, 0, 150, 0);
+  delay(150);
+  //vira crescentemente 
+  controle_velocidade(180, 0, 0, 80);
+  delay(200);
+  controle_velocidade(255, 0, 0, 80);
+  delay(100);
+  controle_velocidade(255, 0, 0, 0);
+  delay(50);
+  controle_velocidade(255, 0, 100, 0);
+  delay(50);
+}
+
+// Virar pra esquerda 
+void virar90Esq(){
+  //continua
+  controle_velocidade(150, 0, 150, 0);
+  delay(150);
+  //vira crescentemente 
+  controle_velocidade(0, 80, 180, 0);
+  delay(200);
+  controle_velocidade(0, 80, 255, 0);
+  delay(100);
+  controle_velocidade(0, 0, 255, 0);
+  delay(50);
+  controle_velocidade(100, 0, 255, 0);
+  delay(50);
+}
+
+// Anda o mais reto possível
+void andarReto(){
+  int velEsq = int(velBase_Global);
+  int velDir = int(0.95 * velBase_Global);
+  controle_velocidade(velEsq, 0, velDir, 0);
+}
+
+// Aumenta a tensão gradualmente
+void partidaSuave(){
+  int velEsq;
+  int velDir;
+
+  //parado inicialmente
+  controle_velocidade(0, 0, 0, 0);
+  delay(200);
+
+  //partida
+  int velBase = 55;
+  controle_velocidade(velBase, 0, velBase, 0);
+  delay(150);
+
+  //aceleração
+  for(int i=55; i<=velBase_Global; i+=5){
+    velBase = i;
+    velEsq = int(velBase);
+    velDir = int(velBase);
+    controle_velocidade(velEsq, 0, velDir, 0);
+    delay(10);
+  }
+
+  //velocidade final
+  velBase = velBase_Global;
+  velEsq = int(velBase);
+  velDir = int(velBase);
+  controle_velocidade(velEsq, 0, velDir, 0);
+  delay(150);
+}
+
+// Atribuição de pesos quando ler quadrado
+int atribuirErro_simples(int sensor1, int sensor2, int sensor3, int sensor4, int sensor5, int sensor6, int sensor7, int sensor8, int sensor9){
+  int erro = 0;
+  if(sensor1 == 0 && sensor2 == 0 && sensor3 == 1 && sensor4 == 1)
+    erro = -5;
+  else if(sensor6 == 1 && sensor7 == 1 && sensor8 == 0 && sensor9 == 0)
+    erro = +5;
+  else if(sensor6 == 1 && sensor4 == 1)
+    erro = 0;
+  else if(sensor5 == 1 && sensor6 == 0 && sensor4 == 0)
+    erro = 0;
+  else if(sensor6 == 1)
+    erro = +1;
+  else if(sensor4 == 1)
+    erro = -1;
+
+  return erro;
+}
+
+// Atribuição de pesos na pista invertida
+int atribuirErro_PistaInvertida(int sensor1, int sensor2, int sensor3, int sensor4, int sensor5, int sensor6, int sensor7, int sensor8, int sensor9, int erroAnterior){
+  int erro = 0;
+  if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1 && sensor5 == 1 && sensor6 == 1 && sensor7 == 1 && sensor8 == 1 && sensor9 == 1)
+    erro = erroAnterior;
+  else if(sensor8 == 1 && sensor2 == 1)
+    erro = 0;
+  else if(sensor7 == 1 && sensor3 == 1)
+    erro = 0;
+  else if(sensor6 == 1 && sensor4 == 1)
+    erro = 0;
+  else if(sensor5 == 1 && sensor6 == 0 && sensor4 == 0)
+    erro = 0;
+  else if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 1)
+    erro = +3;
+  else if(sensor2 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+    erro = -3;
+  else if(sensor7 == 1)
+    erro = +3;
+  else if(sensor3 == 1)
+    erro = -3;
+  else if(sensor6 == 1)
+    erro = +1;
+  else if(sensor4 == 1)
+    erro = -1;
+
+  return erro;
+}
+
+
+// =============================================================
+// Código Principal 
+// =============================================================
+
+void loop() {
+  erro = 0;
+  tempoAtual = millis();
+  int velBase = velBase_Global; // 100 para menor velocidade || 255 para maior velocidade
+
+// Leitura dos sensores
+  int sensor1 = !digitalRead(SENSOR1_PIN);
+  int sensor2 = !digitalRead(SENSOR2_PIN);
+  int sensor3 = !digitalRead(SENSOR3_PIN);
+  int sensor4 = !digitalRead(SENSOR4_PIN);
+  int sensor5 = !digitalRead(SENSOR5_PIN);
+  int sensor6 = !digitalRead(SENSOR6_PIN);
+  int sensor7 = !digitalRead(SENSOR7_PIN);
+  int sensor8 = !digitalRead(SENSOR8_PIN);
+  int sensor9 = !digitalRead(SENSOR9_PIN);
+
+// Enviar leitura por bluetooth
+  if (deviceConnected) {
+    // Monta string manualmente
+    String sensorData = "";
+    sensorData += String(sensor1) + "";
+    sensorData += String(sensor2) + "-";
+    sensorData += String(sensor3) + "";
+    sensorData += String(sensor4) + "";
+    sensorData += String(sensor5) + "";
+    sensorData += String(sensor6) + "";
+    sensorData += String(sensor7) + "-";
+    sensorData += String(sensor8) + "";
+    sensorData += String(sensor9) + "  ";
+    sensorData += "E" + String(estado);
+
+      if(tempoAtual - tempoAnteriorBLE >= int(1000/amostragem_BLE)){ 
+      Serial.println(sensorData);  // Também mostra no Serial Monitor
+      pCharacteristic->setValue(sensorData.c_str());
+      pCharacteristic->notify();
+      tempoAnteriorBLE = tempoAtual;
+    }
+  }
+
+
+// =============================================================
+// MÁQUINA DE ESTADOS 
+// =============================================================
+
+// Estado inicial
+  if(estado == 0){
+    controle_velocidade(0, 0, 0, 0);
+    delay(2000);
+
+    // Transição para o próximo estado
+    estado = 1;
+
+
+// Lendo apenas preto
+  } else if(estado == 1){
+    controle_velocidade(0, 0, 0, 0);
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      estado = 1;
+    else if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1){
+      estado = 3;
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    }
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0){
+      estado = 3;
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    } else 
+      estado = 2; // partida
+
+
+// Partida inicial
+  } else if(estado == 2){
+    partidaSuave();
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      estado = 1;
+    else
+      estado = 3; // seguir linha
+
+
+// Seguindo a linha
+  } else if(estado == 3){
+    int soma_sensores = sensor1 + sensor2 + sensor3 + sensor4 + sensor5 + sensor6 + sensor7 + sensor8 + sensor9;
+
+    // Seguir linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      estado = 1000;
+    else if((sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1) || (sensor6 == 1 && sensor7 == 1 && sensor8 == 1 && sensor9 == 1))
+      estado = 4; // encruzilhada
+    else if((sensor1 == 1 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 1 && sensor4 == 0 && sensor6 == 1 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 0 && sensor4 == 1 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0))
+      estado = 27; // quadrado na esquerda
+    else if((sensor1 == 0 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 1 && sensor6 == 0 && sensor8 == 1 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor6 == 1 && sensor8 == 0 && sensor9 == 1))
+      estado = 6; // quadrado na direita
+    else if(soma_sensores == 8 && (sensor1 == 1 && sensor2 == 1 && (sensor3 == 0 || sensor4 == 0 || sensor5 == 0 || sensor6 == 0 || sensor7 == 0) && sensor8 == 1 && sensor9 == 1)){
+      estado = 52; // pista invertida
+      tempoAnterior_PistaInvertida = tempoAtual;
+    } else
+      estado = 3;
+
+
+// Encruzilhada
+  } else if(estado == 4){
+    int soma_sensores = sensor1 + sensor2 + sensor3 + sensor4 + sensor5 + sensor6 + sensor7 + sensor8 + sensor9;
+    // Seguir linha 
+
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 3; // volta a seguir linha normalmente
+    else if(soma_sensores == 8 && (sensor1 == 1 && sensor2 == 1 && (sensor3 == 0 || sensor4 == 0 || sensor5 == 0 || sensor6 == 0 || sensor7 == 0) && sensor8 == 1 && sensor9 == 1)){
+      estado = 52; // pista invertida
+      tempoAnterior_PistaInvertida = tempoAtual;
+    }
+
+
+
+// Leu o quadrado da DIREITA (ainda segue linha)
+  } else if(estado == 6){
+    int soma_sensores = sensor1 + sensor2 + sensor3 + sensor4 + sensor5 + sensor6 + sensor7 + sensor8 + sensor9;
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+    
+    // Transição para o próximo estado
+    if(sensor5 == 1 && sensor6 == 1 && sensor7 == 1 && sensor8 == 1 && sensor9 == 1)
+      estado = 4; // encruzilhada (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 7; // passou do quadrado
+    else if(soma_sensores == 8 && (sensor1 == 1 && sensor2 == 1 && (sensor3 == 0 || sensor4 == 0 || sensor5 == 0 || sensor6 == 0 || sensor7 == 0) && sensor8 == 1 && sensor9 == 1)){
+      estado = 52; // pista invertida
+      tempoAnterior_PistaInvertida = tempoAtual;
+    }
+
+
+// Passou do quadrado da DIREITA (ainda segue linha)
+  } else if(estado == 7){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 8; // virar pra direita
+    else if((sensor1 == 0 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 1 && sensor6 == 0 && sensor8 == 1 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor6 == 1 && sensor8 == 0 && sensor9 == 1))
+      estado = 10; // lendo 2o quadrado
+    else if((sensor1 == 1 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 1 && sensor4 == 0 && sensor6 == 1 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 0 && sensor4 == 1 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0))
+      estado = 48; // leu quadrado na esq -> ré
+
+
+// Virando pra DIREITA
+  } else if(estado == 8){
+    virar90Dir();
+
+    // Transição para o próximo estado
+    estado = 9; // procurando linha
+
+
+// Procurando linha após virar pra direita
+  } else if(estado == 9){
+    realinharDir(tempoAtual, tempoAnteriorBLE);
+
+    // Transição para o próximo estado
+    estado = 3; // encontrou a linha
+
+
+// Rotatória -> lendo o 2o quadrado a direita
+  } else if(estado == 10){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+    
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 8; // virar a direita (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 11; // passou do 2o quadrado
+
+
+// Rotatória -> parou de ler o 2o quadrado a direita
+  } else if(estado == 11){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 12; // entrar na rotatória (2o quadrado)
+    else if((sensor1 == 0 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 1 && sensor6 == 0 && sensor8 == 1 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor6 == 1 && sensor8 == 0 && sensor9 == 1))
+      estado = 15; // lendo 3o quadrado
+
+
+// Rotatória -> entrando pela direita (2o quadrado)
+  } else if(estado == 12){
+    virar90Dir();
+
+    // Transição para o próximo estado
+    estado = 13; // procurando linha
+
+
+// Rotatória -> procurando linha após entrar pela direita (2o quadrado)
+  } else if(estado == 13){
+    realinharDir(tempoAtual, tempoAnteriorBLE);
+
+    // Transição para o próximo estado
+    estado = 14; // segue linha na rotatória (2o quadrado)
+
+
+// Rotatória -> seguindo linha após entrar pela direita (2o quadrado)
+  } else if(estado == 14){
+    // Seguir linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+  
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 8; // saindo da rotatória (2o quadrado)
+
+
+// Rotatória -> lendo o 3o quadrado a direita
+  } else if(estado == 15){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 12; // entrando na rotatória (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 16; // passou do 3o quadrado
+
+
+// Rotatória -> parou de ler o 3o quadrado a direita
+  } else if(estado == 16){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 17; // entrar na rotatória (3o quadrado)
+    else if((sensor1 == 0 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 1 && sensor6 == 0 && sensor8 == 1 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor6 == 1 && sensor8 == 0 && sensor9 == 1))
+      estado = 21; // lendo o 4o quadrado
+
+
+// Rotatória -> entrando pela direita (3o quadrado)
+  } else if(estado == 17){
+    virar90Dir();
+
+    // Transição para o próximo estado
+    estado = 18; // procurando linha
+
+
+// Rotatória -> procurando linha após entrar pela direita (3o quadrado)
+  } else if(estado == 18){
+    realinharDir(tempoAtual, tempoAnteriorBLE);
+
+    // Transição para o próximo estado
+    estado = 19; // segue linha na rotatória (2o quadrado)
+
+
+// Rotatória -> seguindo linha após entrar pela direita (3o quadrado)
+  } else if(estado == 19){
+    // Seguir linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+  
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 20; // lê a primeira linha a direita (3o quadrado)
+
+
+// Rotatória -> lendo 1a linha da direita (3o quadrado)
+  } else if(estado == 20){
+    andarReto();
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && (sensor3 == 1 || sensor4 == 1 || sensor5 == 1 || sensor6 == 1 || sensor7 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 14; // passsou da primeira linha (3o quadrado)
+
+
+// Rotatória -> lendo o 4o quadrado a direita
+  } else if(estado == 21){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 17; // entrando na rotatória (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 22; // passou do 4o quadrado
+
+
+// Rotatória -> parou de ler o 4o quadrado a direita
+  } else if(estado == 22){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 23; // entrar na rotatória (4o quadrado)
+
+
+// Rotatória -> entrando pela direita (4o quadrado)
+  } else if(estado == 23){
+    virar90Dir();
+
+    // Transição para o próximo estado
+    estado = 24; // procurando linha
+
+
+// Rotatória -> procurando linha após entrar pela direita (4o quadrado)
+  } else if(estado == 24){
+    realinharDir(tempoAtual, tempoAnteriorBLE);
+
+    // Transição para o próximo estado
+    estado = 25; // segue linha na rotatória (4o quadrado)
+
+
+// Rotatória -> seguindo linha após entrar pela direita (4o quadrado)
+  } else if(estado == 25){
+    // Seguir linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+  
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 26; // lê a primeira linha a direita (4o quadrado)
+
+
+// Rotatória -> lendo 1a linha da direita (4o quadrado)
+  } else if(estado == 26){
+    andarReto();
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && (sensor3 == 1 || sensor4 == 1 || sensor5 == 1 || sensor6 == 1 || sensor7 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 19; // passsou da primeira linha (4o quadrado)
+
+
+// Leu o quadrado da ESQUERDA (ainda segue linha)
+  } else if(estado == 27){
+    int soma_sensores = sensor1 + sensor2 + sensor3 + sensor4 + sensor5 + sensor6 + sensor7 + sensor8 + sensor9;
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1 && sensor5 == 1)
+      estado = 4; // encruzilhada (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 28; // passou do quadrado
+    else if(soma_sensores == 8 && (sensor1 == 1 && sensor2 == 1 && (sensor3 == 0 || sensor4 == 0 || sensor5 == 0 || sensor6 == 0 || sensor7 == 0) && sensor8 == 1 && sensor9 == 1)){
+      estado = 52; // pista invertida
+      tempoAnterior_PistaInvertida = tempoAtual;
+    }
+
+
+// Passou do quadrado da ESQUERDA (ainda segue linha)
+  } else if(estado == 28){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 29; // virar a esquerda
+    else if((sensor1 == 1 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 1 && sensor4 == 0 && sensor6 == 1 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 0 && sensor4 == 1 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0))
+      estado = 31; // lendo o 2o quadrado
+    else if((sensor1 == 0 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 1 && sensor6 == 0 && sensor8 == 1 && sensor9 == 1) || (sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor6 == 1 && sensor8 == 0 && sensor9 == 1))
+      estado = 50; // leu quadrado na dir -> ré
+
+
+  // Virando pra ESQUERDA
+  } else if(estado == 29){
+    virar90Esq();
+
+    // Transição para o próximo estado
+    estado = 30; // procurando linha
+
+
+// Procurando linha após virar pra esquerda
+  } else if(estado == 30){
+    realinharEsq(tempoAtual, tempoAnteriorBLE);
+
+    // Transição para o próximo estado
+    estado = 3; // encontrou a linha
+
+
+// Rotatória -> lendo o 2o quadrado a esquerda
+  } else if(estado == 31){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 29; // virando a esquerda (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 32; // passou do 2o quadrado
+
+
+// Rotatória -> parou de ler o 2o quadrado a esquerda
+  } else if(estado == 32){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 33; // entra na rotatória (2o quadrado)
+    else if((sensor1 == 1 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 1 && sensor4 == 0 && sensor6 == 1 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 0 && sensor4 == 1 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0))
+      estado = 36; // lendo o 3o quadrado
+
+
+// Rotatória -> entrando pela esquerda (2o quadrado)
+  } else if(estado == 33){
+    virar90Esq();
+
+    // Transição para o próximo estado
+    estado = 34; // procurando linha
+
+
+// Rotatória -> procurando linha após entrar pela esquerda (2o quadrado)
+  } else if(estado == 34){
+    realinharEsq(tempoAtual, tempoAnteriorBLE);
+
+    // Transição para o próximo estado
+    estado = 35; // encontrou a linha
+
+
+// Rotatória -> seguindo linha após entrar pela esquerda (2o quadrado)
+  } else if(estado == 35){
+    // Seguir linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 29; // saindo da rotatória (2o quadrado)
+
+
+// Rotatória -> lendo o 3o quadrado a esquerda
+  } else if(estado == 36){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 33; // entrando na rotatória (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 37; // passou do 3o quadrado
+
+
+// Rotatória -> parou de ler o 3o quadrado a esquerda
+  } else if(estado == 37){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 38; // entra na rotatória (3o quadrado)
+    else if((sensor1 == 1 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 1 && sensor4 == 0 && sensor6 == 1 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0) || (sensor1 == 1 && sensor2 == 0 && sensor4 == 1 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0))
+      estado = 42; // lendo o 4o quadrado
+
+
+// Rotatória -> entrando pela esquerda (3o quadrado)
+  } else if(estado == 38){
+    virar90Esq();
+
+    // Transição para o próximo estado
+    estado = 39; // procurando linha
+
+
+// Rotatória -> procurando linha após entrar pela esquerda (3o quadrado)
+  } else if(estado == 39){
+    realinharEsq(tempoAtual, tempoAnteriorBLE);
+
+    // Transição para o próximo estado
+    estado = 40; // encontrou a linha
+
+
+// Rotatória -> seguindo linha após entrar pela esquerda (3o quadrado)
+  } else if(estado == 40){
+    // Seguir linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 41; // lê a primeira linha a esquerda (3o quadrado)
+
+
+// Rotatória -> lendo 1a linha da esquerda (3o quadrado)
+  } else if(estado == 41){
+    andarReto();
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && (sensor3 == 1 || sensor4 == 1 || sensor5 == 1 || sensor6 == 1 || sensor7 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 35; // passsou da primeira linha (3o quadrado)
+
+
+// Rotatória -> lendo o 4o quadrado a esquerda
+  } else if(estado == 42){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 38; // entrando na rotatória (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 43; // passou do 4o quadrado
+
+
+// Rotatória -> parou de ler o 4o quadrado a esquerda
+  } else if(estado == 43){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 44; // entra na rotatória (4o quadrado)
+
+
+// Rotatória -> entrando pela esquerda (4o quadrado)
+  } else if(estado == 44){
+    virar90Esq();
+
+    // Transição para o próximo estado
+    estado = 45; // procurando linha
+
+
+// Rotatória -> procurando linha após entrar pela esquerda (4o quadrado)
+  } else if(estado == 45){
+    realinharEsq(tempoAtual, tempoAnteriorBLE);
+
+    // Transição para o próximo estado
+    estado = 46; // encontrou a linha
+
+
+// Rotatória -> seguindo linha após entrar pela esquerda (4o quadrado)
+  } else if(estado == 46){
+    // Seguir linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 47; // lê a primeira linha a esquerda (4o quadrado)
+
+
+// Rotatória -> lendo 1a linha da esquerda (4o quadrado)
+  } else if(estado == 47){
+    andarReto();
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && (sensor3 == 1 || sensor4 == 1 || sensor5 == 1 || sensor6 == 1 || sensor7 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 40; // passsou da primeira linha (4o quadrado)
+
+
+// Ré esq -> leu quadrado na esquerda
+  } else if(estado == 48){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor9 == 1 && sensor8 == 1 && sensor7 == 1 && sensor6 == 1)
+      estado = 8; // virando pra direita (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0){
+      estado = 49; // voltando de ré até encontrar a ponta do quadrado
+      controle_velocidade(0, 0, 0, 0);
+      delay(300);
+      controle_velocidade(0, 80, 0, 80);
+      delay(150);
+      controle_velocidade(0, 120, 0, 120);
+      delay(100);
+    }
+
+
+// Ré esq -> voltando de ré
+  } else if(estado == 49){
+    // dá uma ré simples
+    controle_velocidade(0, 150, 0, 150);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1){
+      estado = 29; // virando pra esquerda
+      controle_velocidade(0, 0, 0, 0); // parada
+      delay(300);
+      controle_velocidade(100, 0, 100, 0); // leve partida
+      delay(200);
+
+      // envia leitura pra esp
+      if (deviceConnected) {
+        // Monta string manualmente
+        String sensorData = "";
+        sensorData += String(sensor1) + "";
+        sensorData += String(sensor2) + "-";
+        sensorData += String(sensor3) + "";
+        sensorData += String(sensor4) + "";
+        sensorData += String(sensor5) + "";
+        sensorData += String(sensor6) + "";
+        sensorData += String(sensor7) + "-";
+        sensorData += String(sensor8) + "";
+        sensorData += String(sensor9) + "  ";
+        sensorData += "E" + String(estado);
+          Serial.println(sensorData);  // Também mostra no Serial Monitor
+          pCharacteristic->setValue(sensorData.c_str());
+          pCharacteristic->notify();
+      }
+    }
+
+
+// Ré dir -> leu quadrado na direita
+  } else if(estado == 50){
+    // Seguir linha de forma simples
+    erro = atribuirErro_simples(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+    controle_PID(erro, erroAnterior, integral, velBase_Global);
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && sensor3 == 1 && sensor4 == 1)
+      estado = 29; // virando pra esquerda (falso quadrado)
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor4 == 1 || sensor5 == 1 || sensor6 == 1) && sensor8 == 0 && sensor9 == 0){
+      estado = 51; // voltando de ré até encontrar a ponta do quadrado
+      controle_velocidade(0, 0, 0, 0);
+      delay(300);
+      controle_velocidade(0, 80, 0, 80);
+      delay(150);
+      controle_velocidade(0, 120, 0, 120);
+      delay(100);
+    }
+
+
+// Ré dir -> voltando de ré
+  } else if(estado == 51){
+    // dá uma ré simples
+    controle_velocidade(0, 150, 0, 150);
+
+    // Transição para o próximo estado
+    if(sensor6 == 1 && sensor7 == 1 && sensor8 == 1 && sensor9 == 1){
+      estado = 8; // virando pra direita
+      controle_velocidade(0, 0, 0, 0); // parada
+      delay(300);
+      controle_velocidade(100, 0, 100, 0); // leve partida
+      delay(200);
+    }
+
+
+// Faixa de pedestres -> possível pista invertida
+  } else if(estado == 52){
+    if(tempoAtual - tempoAnterior_PistaInvertida < 200)
+      andarReto();
+
+    else{
+    tempoAnterior_PistaInvertida = tempoAtual;
+    int soma_sensores = sensor1 + sensor2 + sensor3 + sensor4 + sensor5 + sensor6 + sensor7 + sensor8 + sensor9;
+
+    // Transição para o próximo estado
+    if(soma_sensores == 8 && (sensor1 == 1 && sensor2 == 1 && (sensor3 == 0 || sensor4 == 0 || sensor5 == 0 || sensor6 == 0 || sensor7 == 0) && sensor8 == 1 && sensor9 == 1))
+      estado = 53; // real pista invertida
+    else if(sensor1 == 0 && sensor2 == 0 && (sensor3 == 1 || sensor4 == 1 || sensor5 == 1 || sensor6 == 1 || sensor7 == 1) && sensor8 == 0 && sensor9 == 0)
+      estado = 3; // volta a seguir linha normalmente (falsa pista invertida)
+    }
+
+
+// Faixa de pedestres -> real pista invertida
+  } else if(estado == 53){
+    // Inversão dos sensores
+    sensor1 = !sensor1;
+    sensor2 = !sensor2;
+    sensor3 = !sensor3;
+    sensor4 = !sensor4;
+    sensor5 = !sensor5;
+    sensor6 = !sensor6;
+    sensor7 = !sensor7;
+    sensor8 = !sensor8;
+    sensor9 = !sensor9;
+
+    // Seguir linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro_PistaInvertida(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9, erroAnterior);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+
+    // Transição para o próximo estado
+    if(sensor1 == 1 && sensor2 == 1 && (sensor4 == 0 || sensor5 == 0 || sensor6 == 0) && sensor8 == 1 && sensor9 == 1)
+      estado = 54; // seguir posicionando
+
+
+// Faixa de pedestres -> seguir posicionando
+  } else if(estado == 54){
+    // Seguir linha 
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor9 == 1)
+      realinharDir(tempoAtual, tempoAnteriorBLE); // realinharDir()
+    else if(sensor1 == 1 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      realinharEsq(tempoAtual, tempoAnteriorBLE); // realinharEsq()
+    else{
+      erro = atribuirErro(sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8, sensor9);
+      controle_PID(erro, erroAnterior, integral, velBase_Global);
+    }
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0){
+      estado = 55;
+      tempoAnterior_parado5s = tempoAtual;
+    }
+    else
+      estado = 54;
+
+
+// Faixa de pedestres -> frear com ré 
+  } else if(estado == 55){
+    controle_velocidade(0, 0, 0, 0);
+    delay(150);
+    //controle_velocidade(0, 80, 0, 80);
+    //delay(150);
+
+    // Transição para o próximo estado
+    estado = 56; // pararado por 5s
+
+
+// Faixa de pedestres -> parar por 5s
+  } else if(estado == 56){
+    if(tempoAtual - tempoAnterior_parado5s < 5000)
+      controle_velocidade(0, 0, 0, 0);
+    else{
+      tempoAnterior_parado5s = tempoAtual;
+
+      // Transição para o próximo estado
+      estado = 57; // partida após parar
+    }
+
+
+// Faixa de pedestres -> partida após parar
+  } else if(estado == 57){
+    partidaSuave();
+
+    // Transição para o próximo estado
+    estado = 58;
+
+
+// Faixa de pedestres -> andar reto antes da faixa
+  } else if(estado == 58){
+    andarReto();
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      estado = 58;
+    else
+      estado = 59; // andar reto na faixa
+
+
+// Faixa de pedestres -> andar reto na faixa
+  } else if(estado == 59){
+    andarReto();
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      estado = 60; // andar reto após a faixa
+    else
+      estado = 59;
+
+
+// Faixa de pedestres -> andar reto após a faixa
+  } else if(estado == 60){
+    andarReto();
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      estado = 60; 
+    else
+      estado = 3; // Detectou a linha
+
+
+
+
+// parar por 10s se ler preto
+  } else if(estado == 1000){
+    controle_velocidade(0, 0, 0, 0);
+    delay(9000);
+
+
+    // Transição para o próximo estado
+    if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor4 == 0 && sensor5 == 0 && sensor6 == 0 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+      estado = 1000;
+    else 
+      estado = 2; // partida
+
+  }
+
+
+
+
+/*
+
+Serial.print("Estado: "); Serial.println(estado);
+Serial.print("erro: "); Serial.println(erro);
+Serial.println("");
+delay(700);
+
+*/
+
+/*
+
+// Mostrando a leituras dos sensores
+  Serial.print("S1: "); Serial.print(sensor1);
+  Serial.print("  S2: "); Serial.print(sensor2);
+  Serial.print("  S3: "); Serial.print(sensor3);
+  Serial.print("  S4: "); Serial.print(sensor4);
+  Serial.print("  S5: "); Serial.print(sensor5);
+  Serial.print("  S6: "); Serial.print(sensor6);
+  Serial.print("  S7: "); Serial.print(sensor7);
+  Serial.print("  S8: "); Serial.print(sensor8);
+  Serial.print("  S9: "); Serial.println(sensor9);
+
+
+
+// Mostrando a potência dos motores
+  Serial.print("velEsquerdo: "); Serial.print(velEsq);
+  Serial.print("  velDireito: "); Serial.println(velDir);
+
+  Serial.print("erro: "); Serial.print(erro);
+  Serial.print("  estado: "); Serial.println(estado);
+  Serial.println("");
+  delay(700); */
+  
+  erroAnterior = erro;
+  integral += erro;
+  if(sensor1 == 0 && sensor2 == 0 && sensor3 == 0 && sensor5 == 1 && sensor7 == 0 && sensor8 == 0 && sensor9 == 0)
+    integral = 0;
+}
+
