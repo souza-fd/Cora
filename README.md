@@ -1,70 +1,93 @@
+
 # CORA — 12ª Edição
 
-### Equipe McQueen | Clube de Robótica do Colégio Técnico da UFMG
+### Equipe MCQUEEN | Clube de Robótica do COLTEC/UFMG
 
-Repositório dedicado à organização, preservação e consulta de códigos relacionados às atividades do Clube de Robótica do Colégio Técnico da Universidade Federal de Minas Gerais (COLTEC/UFMG).
+Repositório dedicado à organização, documentação e preservação de códigos e materiais relacionados às atividades de robótica desenvolvidas no contexto do Clube de Robótica do Colégio Técnico da Universidade Federal de Minas Gerais (COLTEC/UFMG).
 
-O **Cora** reúne experiências de programação e robótica, desde códigos utilizados em oficinas e atividades de aprendizagem até implementações de robôs e modelos autônomos do clube.
+O acervo reúne registros de projetos, atividades de aprendizagem, oficinas e experimentações envolvendo programação, eletrônica e desenvolvimento de sistemas autônomos.
 
-Mais do que armazenar programas, este repositório busca preservar parte do percurso técnico e experimental da robótica no clube.
+Mais do que armazenar códigos, este espaço busca preservar parte das experiências e dos conhecimentos construídos ao longo das atividades do clube.
 
 ---
 
 ## Sobre o repositório
 
-Este espaço reúne códigos de diferentes projetos e contextos, incluindo:
+Este repositório reúne materiais de diferentes projetos e contextos, incluindo:
 
-- **Projetos da equipe McQueen:** códigos relacionados aos robôs e sistemas trabalhados pela equipe.
-- **Modelos autônomos do clube:** implementações de outros projetos de robótica, incluindo aqueles cuja programação contou com a colaboração da equipe.
-- **Códigos de oficinas:** exemplos, exercícios e materiais utilizados em atividades de aprendizagem.
-- **Registros e referências:** códigos de projetos do clube preservados por seu valor técnico, histórico ou educacional.
+- **Equipe MCQUEEN:** códigos e materiais relacionados ao projeto desenvolvido para a 12ª edição da Competição de Robôs Autônomos (CoRA).
+- **Projetos do clube:** implementações de robôs e modelos autônomos, incluindo projetos que contaram com a colaboração de integrantes da equipe.
+- **Oficinas:** códigos e exemplos utilizados em atividades introdutórias de robótica e programação para novos integrantes.
+- **Referências e registros:** códigos de outros projetos, preservados para consulta, estudo e referência técnica.
 
-Os arquivos podem apresentar diferentes níveis de desenvolvimento, organização e documentação, de acordo com o contexto em que foram produzidos.
+A presença de um material neste repositório não significa necessariamente que ele tenha sido desenvolvido integralmente pela equipe MCQUEEN ou por seus integrantes. Cada arquivo deve ser considerado conforme sua origem e seu contexto.
 
-## Projetos e tecnologias
+## Projeto MCQUEEN — 12ª CoRA
 
-Entre os materiais presentes no acervo, encontram-se implementações envolvendo:
+O MCQUEEN foi o robô desenvolvido pela equipe para a 12ª edição da Competição de Robôs Autônomos (CoRA).
 
-- Robôs seguidores de linha;
-- Sistemas de controle PID;
-- Máquinas de estados;
+O projeto envolveu diferentes etapas de desenvolvimento, integrando conhecimentos de eletrônica, programação, modelagem e prototipagem.
+
+Entre as atividades relacionadas ao desenvolvimento, destacam-se:
+
+- Programação e implementação de sistemas de controle;
+- Integração de componentes eletrônicos;
+- Utilização de sensores e acionamento de motores;
+- Modelagem e prototipagem do robô;
+- Experimentação e ajustes durante o desenvolvimento.
+
+O projeto representou uma experiência prática de integração entre hardware e software, além de trabalho colaborativo na construção de um sistema autônomo.
+
+## Oficinas e atividades de aprendizagem
+
+Além dos projetos de desenvolvimento, integrantes do clube também contribuíram com atividades introdutórias destinadas aos novos alunos.
+
+As oficinas abordaram conceitos fundamentais para a construção de carrinhos autônomos, envolvendo componentes eletrônicos, sensores, motores, microcontroladores e programação.
+
+Entre os conteúdos trabalhados estavam Arduino, ESP32, ponte H, leitura de sensores, acionamento de motores e fundamentos de controle, incluindo o controle PID.
+
+## Tecnologias e conceitos
+
+Entre as tecnologias e os conceitos encontrados nos materiais deste repositório, estão:
+
+- Arduino e ESP32;
 - Sensores infravermelhos e digitais;
-- Acionamento de motores e servomotores;
-- Controle de robôs quadrúpedes;
+- Motores e servomotores;
+- Pontes H e circuitos de acionamento;
 - Comunicação Bluetooth Low Energy (BLE);
-- Plataformas Arduino e ESP32;
-- Programação de sistemas autônomos.
+- Controle PID;
+- Máquinas de estados;
+- Sistemas autônomos;
+- Modelagem e prototipagem 3D.
+
+A utilização dessas tecnologias varia conforme o projeto e o material documentado.
 
 ## Organização e autoria
 
-A presença de um código neste repositório não significa, necessariamente, que ele tenha sido desenvolvido pela equipe McQueen ou que seus integrantes tenham participado de sua programação.
+Os códigos presentes neste repositório possuem diferentes origens e níveis de participação.
 
-O acervo também contém códigos de outros projetos do clube, materiais de oficinas e implementações mantidas como referência ou registro.
+Alguns estão diretamente relacionados ao trabalho da equipe MCQUEEN; outros pertencem a projetos do Clube de Robótica, atividades de oficinas ou materiais mantidos como referência.
 
-Sempre que possível, a origem e o contexto de cada material devem ser considerados individualmente.
+Por isso, a inclusão de um arquivo não representa, por si só, autoria ou participação direta em seu desenvolvimento.
 
-A proposta é valorizar o conhecimento compartilhado, sem atribuir à equipe autorias ou contribuições que não correspondam à sua participação real.
+Sempre que possível, serão identificados o projeto de origem, o contexto de utilização e as contribuições realizadas.
 
-## Propósito
+O objetivo é preservar os materiais com responsabilidade, valorizando o trabalho coletivo e reconhecendo adequadamente as diferentes contribuições.
+
+## Objetivos
 
 - Preservar códigos e registros de projetos de robótica;
+- Documentar experiências de desenvolvimento e experimentação;
 - Facilitar a consulta a implementações anteriores;
-- Reunir referências para o desenvolvimento de novos sistemas;
-- Apoiar o aprendizado de programação e robótica;
+- Reunir referências para novos projetos;
+- Apoiar o aprendizado de programação e eletrônica;
 - Valorizar a colaboração e a troca de conhecimento;
-- Manter a memória técnica dos projetos e atividades do clube.
-
-## Sobre a equipe
-
-**McQueen — 12ª Edição**
-
-Clube de Robótica do Colégio Técnico da UFMG.
-
-Este repositório representa um espaço de organização e preservação de conhecimento, reunindo experiências de programação, experimentação e desenvolvimento no universo da robótica.
+- Contribuir para a memória técnica do Clube de Robótica.
 
 ---
 
-*Conhecimento compartilhado também faz parte da construção de cada projeto.*
+**CORA — 12ª Edição | Equipe MCQUEEN**
 
-**CORA | 12ª Edição — Equipe McQueen**  
-*Clube de Robótica do Colégio Técnico da UFMG*
+Clube de Robótica do Colégio Técnico da Universidade Federal de Minas Gerais (COLTEC/UFMG).
+
+*Conhecimento compartilhado também faz parte da construção de cada projeto.*
