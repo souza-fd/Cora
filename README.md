@@ -1,4 +1,3 @@
-
 # Cora — 12ª Edição
 
 **Equipe McQueen | Clube de Robótica do COLTEC/UFMG**
