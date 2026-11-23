@@ -1,10 +1,10 @@
 # McQueen — Modelagem Tridimensional
 
-**Equipe MCQUEEN | Clube de Robótica do COLTEC/UFMG**
+**Equipe McQueen | Clube de Robótica do COLTEC/UFMG**
 
 ## Sobre
 
-Diretório destinado à preservação e à documentação dos arquivos de modelagem tridimensional relacionados ao robô McQueen, desenvolvido para a participação da equipe MCQUEEN na 12ª Competição de Robôs Autônomos (CoRA), em 2025.
+Diretório destinado à preservação e à documentação dos arquivos de modelagem tridimensional relacionados ao robô McQueen, desenvolvido para a participação da equipe McQueen na 12ª Competição de Robôs Autônomos (CoRA), em 2025.
 
 O acervo reúne materiais referentes à representação tridimensional da estrutura do robô, registrando parte do processo de desenvolvimento e preparação do modelo.
 
@@ -50,6 +50,6 @@ Esses materiais também constituem registros do processo de desenvolvimento mec�
 
 ---
 
-**Equipe MCQUEEN**  
+**Equipe McQueen**  
 Clube de Robótica do COLTEC/UFMG  
 **12ª Competição de Robôs Autônomos (CoRA)**
