@@ -1,7 +1,7 @@
 
-# CORA — 12ª Edição
+# Cora — 12ª Edição
 
-**Equipe MCQUEEN | Clube de Robótica do COLTEC/UFMG**
+**Equipe McQueen | Clube de Robótica do COLTEC/UFMG**
 
 > "A única forma de chegar ao impossível é acreditar que é possível."
 >
@@ -11,11 +11,11 @@
 
 Repositório destinado à organização e preservação de códigos-fonte e materiais técnicos relacionados às atividades do Clube de Robótica do Colégio Técnico da Universidade Federal de Minas Gerais (COLTEC/UFMG).
 
-O acervo reúne implementações associadas à participação da equipe MCQUEEN na 12ª Competição de Robôs Autônomos (CoRA), além de códigos de outros projetos do clube, materiais utilizados em oficinas e referências técnicas.
+O acervo reúne implementações associadas à participação da equipe McQueen na 12ª Competição de Robôs Autônomos (CoRA), além de códigos de outros projetos do clube, materiais utilizados em oficinas e referências técnicas.
 
 ## Contexto
 
-A equipe MCQUEEN participou da 12ª edição da Competição de Robôs Autônomos (CoRA), desenvolvendo um robô que envolveu atividades de programação, eletrônica, modelagem e prototipagem.
+A equipe McQueen participou da 12ª edição da Competição de Robôs Autônomos (CoRA), desenvolvendo um robô que envolveu atividades de programação, eletrônica, modelagem e prototipagem.
 
 O desenvolvimento contemplou a integração entre componentes eletrônicos e sistemas de controle, proporcionando a aplicação prática de conhecimentos relacionados à construção de sistemas autônomos.
 
@@ -41,14 +41,14 @@ As implementações presentes no repositório abrangem diferentes plataformas, c
 - **Eletrônica:** sensores infravermelhos e digitais, motores, servomotores, LEDs e pontes H;
 - **Controle:** controle PID, leitura de sensores e máquinas de estados;
 - **Comunicação:** Bluetooth Low Energy (BLE);
-- **Modelagem:** Tinkercad;
+- **Modelagem:** Blender e Tinkercad;
 - **Sistemas:** programação embarcada e robótica autônoma.
 
 A utilização desses recursos varia conforme o projeto documentado.
 
-## Projeto MCQUEEN
+## Projeto McQueen
 
-O MCQUEEN foi desenvolvido para a participação da equipe na 12ª edição da CoRA.
+O McQueen foi desenvolvido para a participação da equipe na 12ª edição da CoRA.
 
 O projeto envolveu atividades relacionadas a:
 
@@ -71,9 +71,24 @@ As atividades abordaram fundamentos da montagem e programação de carrinhos aut
 
 Os arquivos deste repositório possuem diferentes origens e níveis de participação.
 
-Nem todos os códigos foram desenvolvidos pela equipe MCQUEEN ou tiveram a participação direta de seus integrantes. O acervo também contém implementações de outros projetos do clube e materiais mantidos para consulta e referência.
+Nem todos os códigos foram desenvolvidos pela equipe McQueen ou tiveram a participação direta de seus integrantes. O acervo também contém implementações de outros projetos do clube e materiais mantidos para consulta e referência.
 
 Sempre que possível, serão identificados o projeto de origem, o contexto de utilização e as contribuições correspondentes.
+
+## Links institucionais
+
+### Organização da competição
+
+- [CoRA — Competição de Robôs Autônomos](https://cora.cpdee.ufmg.br/)
+- [PETEE UFMG — Programa de Educação Tutorial da Engenharia Elétrica](https://petee.cpdee.ufmg.br/)
+- [Instagram do PETEE UFMG](https://www.instagram.com/petee.ufmg/)
+- [Instagram da CoRA](https://www.instagram.com/cora_ufmg/)
+
+### Instituições e apoiadores
+
+- [Fundação Christiano Ottoni (FCO)](https://fco.org.br/)
+- [EcoCreator](https://ecocreator.com.br/)
+- [COLTEC/UFMG](https://www.coltec.ufmg.br/coltec-ufmg/)
 
 ## Objetivos
 
@@ -90,6 +105,6 @@ Não há licença de distribuição definida neste momento. A utilização e red
 
 ---
 
-**Equipe MCQUEEN**  
+**Equipe McQueen**  
 Clube de Robótica do Colégio Técnico da UFMG  
 **12ª Competição de Robôs Autônomos (CoRA)**
