@@ -27,7 +27,7 @@ Os materiais estão organizados de acordo com seus respectivos contextos:
 
 | Categoria | Descrição |
 |---|---|
-| **MCQUEEN** | Códigos e arquivos relacionados ao projeto desenvolvido para a 12ª CoRA. |
+| **McQueen** | Códigos e arquivos relacionados ao projeto desenvolvido para a 12ª CoRA. |
 | **Projetos do clube** | Implementações de outros sistemas e modelos robóticos. |
 | **Oficinas** | Códigos e exemplos utilizados em atividades introdutórias de robótica. |
 | **Referências** | Materiais técnicos preservados para consulta e estudo. |
