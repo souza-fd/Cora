@@ -9,71 +9,92 @@
 
 ## Sobre
 
-Repositório destinado à organização e preservação de códigos-fonte e materiais técnicos relacionados às atividades do Clube de Robótica do Colégio Técnico da Universidade Federal de Minas Gerais (COLTEC/UFMG).
+Repositório dedicado à organização, documentação e preservação de códigos-fonte, registros de desenvolvimento e materiais técnicos relacionados às atividades do Clube de Robótica do Colégio Técnico da Universidade Federal de Minas Gerais (COLTEC/UFMG).
 
-O acervo reúne implementações associadas à participação da equipe McQueen na 12ª Competição de Robôs Autônomos (CoRA), além de códigos de outros projetos do clube, materiais utilizados em oficinas e referências técnicas.
+O acervo reúne implementações vinculadas à participação da equipe McQueen na 12ª Competição de Robôs Autônomos (CoRA), além de materiais provenientes de outros projetos, atividades formativas e iniciativas desenvolvidas no âmbito do clube.
+
+Seu propósito é constituir um espaço de registro e consulta técnica, contribuindo para a preservação do conhecimento produzido, o compartilhamento de experiências e a continuidade de atividades relacionadas à robótica.
 
 ## Contexto
 
-A equipe McQueen participou da 12ª edição da Competição de Robôs Autônomos (CoRA), desenvolvendo um robô que envolveu atividades de programação, eletrônica, modelagem e prototipagem.
+A equipe McQueen participou da 12ª edição da Competição de Robôs Autônomos (CoRA), envolvendo atividades de planejamento, programação, desenvolvimento eletrônico, modelagem e prototipagem de um sistema robótico autônomo.
 
-O desenvolvimento contemplou a integração entre componentes eletrônicos e sistemas de controle, proporcionando a aplicação prática de conhecimentos relacionados à construção de sistemas autônomos.
+O desenvolvimento do projeto exigiu a integração entre componentes eletrônicos, sistemas embarcados e estratégias de controle, proporcionando a aplicação prática de conhecimentos de programação, instrumentação e engenharia.
 
-Além do projeto competitivo, o acervo também contempla materiais provenientes de atividades formativas e de outros projetos desenvolvidos no ambiente do Clube de Robótica.
+Paralelamente às atividades competitivas, o Clube de Robótica também desenvolveu iniciativas voltadas à introdução de novos integrantes à área, promovendo o contato com ferramentas, componentes e fundamentos da construção de sistemas robóticos.
+
+Este repositório reúne parte desses registros, preservando materiais de diferentes contextos e etapas de desenvolvimento.
 
 ## Conteúdo
 
-Os materiais estão organizados de acordo com seus respectivos contextos:
+O acervo contempla materiais organizados de acordo com sua finalidade e procedência:
 
 | Categoria | Descrição |
 |---|---|
-| **McQueen** | Códigos e arquivos relacionados ao projeto desenvolvido para a 12ª CoRA. |
-| **Projetos do clube** | Implementações de outros sistemas e modelos robóticos. |
-| **Oficinas** | Códigos e exemplos utilizados em atividades introdutórias de robótica. |
-| **Referências** | Materiais técnicos preservados para consulta e estudo. |
-| **Modelagem** | Arquivos e registros relacionados à modelagem tridimensional. |
+| **McQueen** | Códigos-fonte, documentação e registros técnicos relacionados ao projeto desenvolvido para a 12ª CoRA. |
+| **Projetos do clube** | Implementações e materiais referentes a outros sistemas e modelos robóticos desenvolvidos no âmbito do clube. |
+| **Oficinas** | Códigos, exemplos e recursos utilizados em atividades introdutórias de robótica. |
+| **Referências** | Documentação técnica, materiais de consulta e implementações preservadas para estudo. |
+| **Modelagem** | Arquivos tridimensionais e registros relacionados aos processos de modelagem e prototipagem. |
 
-## Tecnologias
+## Tecnologias e fundamentos técnicos
 
-As implementações presentes no repositório abrangem diferentes plataformas, componentes e conceitos:
+Os materiais reunidos abrangem diferentes plataformas, ferramentas e conceitos relacionados à robótica e ao desenvolvimento de sistemas embarcados.
 
 - **Microcontroladores:** Arduino e ESP32;
 - **Eletrônica:** sensores infravermelhos e digitais, motores, servomotores, LEDs e pontes H;
-- **Controle:** controle PID, leitura de sensores e máquinas de estados;
+- **Sistemas de controle:** controle PID, aquisição de sinais, interpretação de sensores e máquinas de estados;
 - **Comunicação:** Bluetooth Low Energy (BLE);
-- **Modelagem:** Blender e Tinkercad;
-- **Sistemas:** programação embarcada e robótica autônoma.
+- **Programação:** desenvolvimento de firmware e programação embarcada;
+- **Modelagem e prototipagem:** Blender e Tinkercad;
+- **Robótica:** integração eletromecânica, sistemas autônomos e controle de dispositivos.
 
-A utilização desses recursos varia conforme o projeto documentado.
+A utilização dessas tecnologias e fundamentos varia conforme as características e os objetivos de cada implementação.
 
 ## Projeto McQueen
 
-O McQueen foi desenvolvido para a participação da equipe na 12ª edição da CoRA.
+O McQueen foi desenvolvido pela equipe para participação na 12ª edição da Competição de Robôs Autônomos (CoRA).
 
-O projeto envolveu atividades relacionadas a:
+Sua construção envolveu atividades de desenvolvimento e integração de sistemas eletrônicos e computacionais, contemplando diferentes etapas da concepção de um robô autônomo.
 
-- Integração de componentes eletrônicos;
-- Programação de sistemas embarcados;
-- Leitura e interpretação de sensores;
-- Controle e acionamento de motores;
-- Modelagem tridimensional;
-- Prototipagem e experimentação.
+Entre as principais atividades relacionadas ao projeto, destacam-se:
 
-Os arquivos relacionados ao projeto constituem parte do registro técnico das atividades realizadas pela equipe.
+- Desenvolvimento e programação do sistema embarcado;
+- Integração de componentes eletrônicos e eletromecânicos;
+- Aquisição e interpretação de sinais provenientes de sensores;
+- Implementação de estratégias de controle;
+- Acionamento e controle de motores;
+- Modelagem tridimensional e prototipagem;
+- Testes, experimentação e ajustes do sistema.
+
+Os arquivos associados ao McQueen constituem o registro técnico das implementações e dos materiais relacionados ao desenvolvimento do robô.
 
 ## Atividades formativas
 
-O repositório também reúne materiais utilizados em oficinas introdutórias destinadas aos novos integrantes do Clube de Robótica.
+Além dos projetos competitivos, o Clube de Robótica promoveu atividades introdutórias destinadas à integração e formação de novos integrantes.
 
-As atividades abordaram fundamentos da montagem e programação de carrinhos autônomos, incluindo a utilização de sensores, motores, Arduino, ESP32, pontes H e conceitos básicos de controle PID.
+Entre essas iniciativas, destacam-se oficinas de introdução à montagem e programação de carrinhos autônomos, com abordagem de conceitos fundamentais de eletrônica, programação e controle.
+
+As atividades envolveram o contato com:
+
+- Plataformas Arduino e ESP32;
+- Sensores e sistemas de aquisição;
+- Motores e acionamentos por pontes H;
+- Fundamentos de programação embarcada;
+- Introdução ao controle PID;
+- Integração entre componentes eletrônicos e mecânicos.
+
+Os materiais dessas atividades também integram o acervo, servindo como referência para consultas e iniciativas formativas posteriores.
 
 ## Organização e procedência
 
-Os arquivos deste repositório possuem diferentes origens e níveis de participação.
+Os materiais disponibilizados neste repositório possuem diferentes origens, finalidades e níveis de participação.
 
-Nem todos os códigos foram desenvolvidos pela equipe McQueen ou tiveram a participação direta de seus integrantes. O acervo também contém implementações de outros projetos do clube e materiais mantidos para consulta e referência.
+O acervo não se restringe às implementações desenvolvidas pela equipe McQueen, abrangendo também códigos de outros projetos do Clube de Robótica, materiais utilizados em oficinas e referências técnicas preservadas para consulta.
 
-Sempre que possível, serão identificados o projeto de origem, o contexto de utilização e as contribuições correspondentes.
+Dessa forma, a presença de determinado arquivo no repositório não implica necessariamente autoria ou participação direta da equipe em seu desenvolvimento.
+
+Sempre que possível, serão identificados o projeto de origem, o contexto de utilização, os responsáveis e as contribuições correspondentes, respeitando a procedência e a autoria dos materiais.
 
 ## Links institucionais
 
@@ -90,21 +111,27 @@ Sempre que possível, serão identificados o projeto de origem, o contexto de ut
 - [EcoCreator](https://ecocreator.com.br/)
 - [COLTEC/UFMG](https://www.coltec.ufmg.br/coltec-ufmg/)
 
-## Objetivos
+## Objetivos do repositório
 
-- Preservar códigos-fonte e registros técnicos;
-- Documentar experiências relacionadas à robótica;
-- Facilitar a consulta a implementações anteriores;
-- Reunir referências para projetos futuros;
-- Apoiar atividades de estudo e desenvolvimento;
-- Registrar parte das atividades do Clube de Robótica do COLTEC/UFMG.
+- Preservar códigos-fonte, documentação e registros técnicos;
+- Organizar materiais relacionados às atividades do Clube de Robótica;
+- Documentar experiências de desenvolvimento e integração de sistemas robóticos;
+- Facilitar a consulta a implementações e soluções anteriormente desenvolvidas;
+- Reunir referências técnicas para atividades de estudo e projetos futuros;
+- Registrar parte da trajetória técnica e formativa do clube;
+- Contribuir para a continuidade e o compartilhamento do conhecimento produzido.
 
-## Licença
+## Licença e direitos autorais
 
-Não há licença de distribuição definida neste momento. A utilização e redistribuição dos materiais devem respeitar suas respectivas autorias e condições de origem.
+Este repositório não possui uma licença geral de distribuição definida neste momento.
+
+Os materiais disponibilizados devem ter sua utilização, modificação e redistribuição condicionadas à respectiva autoria, às licenças de origem e às autorizações aplicáveis.
+
+A inclusão de códigos, bibliotecas e materiais de terceiros não implica transferência de titularidade ou concessão automática de direitos de utilização.
 
 ---
 
 **Equipe McQueen**  
-Clube de Robótica do Colégio Técnico da UFMG  
+Clube de Robótica do Colégio Técnico da Universidade Federal de Minas Gerais (COLTEC/UFMG)
+
 **12ª Competição de Robôs Autônomos (CoRA)**
