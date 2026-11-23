@@ -1,4 +1,3 @@
-
 # McQueen — Firmware e Máquina de Estados
 
 **Equipe McQueen | Clube de Robótica do COLTEC/UFMG**
